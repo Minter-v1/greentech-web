@@ -1,26 +1,333 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@custom-variant dark (&:is(.dark *));
+
+/* MARK: - 디자인 토큰 (DESIGN.md) */
+@theme {
+  /* MARK: 브랜드 */
+  --color-primary: #171717;
+  --color-on-primary: #ffffff;
+  --color-ink: #171717;
+  --color-body: #4d4d4d;
+  --color-mute: #888888;
+
+  /* MARK: 서피스 */
+  --color-canvas: #ffffff;
+  --color-canvas-soft: #fafafa;
+  --color-canvas-soft-2: #f5f5f5;
+  --color-hairline: #ebebeb;
+  --color-hairline-strong: #a1a1a1;
+
+  /* MARK: 시맨틱 */
+  --color-link: #0070f3;
+  --color-link-deep: #0761d1;
+  --color-link-bg-soft: #d3e5ff;
+  --color-success: #0070f3;
+  --color-error: #ee0000;
+  --color-error-soft: #f7d4d6;
+  --color-error-deep: #c50000;
+  --color-warning: #f5a623;
+  --color-warning-soft: #ffefcf;
+  --color-warning-deep: #ab570a;
+  --color-violet: #7928ca;
+  --color-violet-soft: #d8ccf1;
+  --color-violet-deep: #4c2889;
+  --color-cyan: #50e3c2;
+  --color-cyan-soft: #aaffec;
+  --color-cyan-deep: #29bc9b;
+  --color-highlight-pink: #ff0080;
+
+  /* MARK: 그라디언트 스톱 */
+  --color-gradient-develop-start: #007cf0;
+  --color-gradient-develop-end: #00dfd8;
+  --color-gradient-preview-start: #7928ca;
+  --color-gradient-preview-end: #ff0080;
+  --color-gradient-ship-start: #ff4d4d;
+  --color-gradient-ship-end: #f9cb28;
+
+  /* MARK: 타이포. 디스플레이는 weight 600 상한 */
+  --text-display-xl: 48px;
+  --text-display-xl--line-height: 48px;
+  --text-display-xl--letter-spacing: -2.4px;
+  --text-display-xl--font-weight: 600;
+  --text-display-lg: 32px;
+  --text-display-lg--line-height: 40px;
+  --text-display-lg--letter-spacing: -1.28px;
+  --text-display-lg--font-weight: 600;
+  --text-display-md: 24px;
+  --text-display-md--line-height: 32px;
+  --text-display-md--letter-spacing: -0.96px;
+  --text-display-md--font-weight: 600;
+  --text-display-sm: 20px;
+  --text-display-sm--line-height: 28px;
+  --text-display-sm--letter-spacing: -0.6px;
+  --text-display-sm--font-weight: 600;
+  --text-body-lg: 18px;
+  --text-body-lg--line-height: 28px;
+  --text-body-md: 16px;
+  --text-body-md--line-height: 24px;
+  --text-body-sm: 14px;
+  --text-body-sm--line-height: 20px;
+  --text-body-sm--letter-spacing: -0.28px;
+  --text-caption: 12px;
+  --text-caption--line-height: 16px;
+  --text-code: 13px;
+  --text-code--line-height: 20px;
+
+  /* MARK: 라운드 */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill-sm: 64px;
+  --radius-pill: 100px;
+
+  /* MARK: 스페이싱. 4px 베이스 */
+  --spacing-xxs: 4px;
+  --spacing-xs: 8px;
+  --spacing-sm: 12px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 40px;
+  --spacing-3xl: 48px;
+  --spacing-4xl: 64px;
+  --spacing-5xl: 96px;
+  --spacing-6xl: 128px;
+  --spacing-section: 192px;
+
+  /* MARK: 엘리베이션. 단일 드롭 금지 */
+  --shadow-level-1: 0 0 0 1px #00000014;
+  --shadow-level-2: 0 1px 1px #00000005, 0 2px 2px #0000000a, 0 0 0 1px #00000014;
+  --shadow-level-3: 0 2px 2px #0000000a, 0 8px 8px -8px #0000000a, 0 0 0 1px #00000014;
+  --shadow-level-4: 0 2px 2px #0000000a, 0 8px 16px -4px #0000000a, 0 0 0 1px #00000014;
+  --shadow-level-5: 0 1px 1px #00000005, 0 8px 16px -4px #0000000a,
+    0 24px 32px -8px #0000000f, 0 0 0 1px #00000014;
+
+  /* MARK: 폰트 페이스 */
+  --font-sans: var(--font-pretendard), "Apple SD Gothic Neo", system-ui, -apple-system, sans-serif;
+
+  /* MARK: 레이아웃 */
+  --container-page: 1400px;
+
+  /* FIXME: DESIGN.md 스페이싱을 t-shirt 이름(--spacing-sm/md/lg/...)으로 둔 결과,
+     같은 이름을 쓰는 컨테이너 스케일 유틸이 스페이싱 값으로 해석됨.
+     예) max-w-lg → 32rem 이 아니라 --spacing-lg 24px.
+     --container-lg 를 명시해도 스페이싱이 우선하므로, 폭이 필요한 곳은
+     max-w-[32rem] 처럼 명시값을 쓸 것. 신규 shadcn 컴포넌트 추가 시 확인 필요 */
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+@layer base {
+  body {
+    background-color: var(--color-canvas-soft);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: var(--text-body-sm);
+    line-height: var(--text-body-sm--line-height);
+    letter-spacing: var(--text-body-sm--letter-spacing);
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  ::selection {
+    background-color: #171717;
+    color: #f2f2f2;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* MARK: - shadcn 토큰 브리지 (DESIGN.md 색상으로 매핑) */
+@theme {
+  --color-background: #ffffff;
+  --color-foreground: #171717;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #f5f5f5;
+  --color-secondary-foreground: #171717;
+  --color-muted: #fafafa;
+  --color-muted-foreground: #888888;
+  --color-accent: #f5f5f5;
+  --color-accent-foreground: #171717;
+  --color-destructive: #ee0000;
+  --color-destructive-foreground: #ffffff;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #171717;
+  --color-card: #ffffff;
+  --color-card-foreground: #171717;
+  --color-border: #ebebeb;
+  --color-input: #ebebeb;
+  --color-ring: #171717;
+
+  --color-sidebar: #ffffff;
+  --color-sidebar-foreground: #4d4d4d;
+  --color-sidebar-primary: #171717;
+  --color-sidebar-primary-foreground: #ffffff;
+  --color-sidebar-accent: #f5f5f5;
+  --color-sidebar-accent-foreground: #171717;
+  --color-sidebar-border: #ebebeb;
+  --color-sidebar-ring: #171717;
+}
+
+/* MARK: - 모션 토큰 */
+@theme {
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-emphasized: cubic-bezier(0.35, 0, 0, 1);
+
+  --animate-pulse-cascade: pulse-cascade 1.6s ease-in-out infinite;
+  --animate-spinner-sweep: spinner-sweep 0.9s linear infinite;
+  --animate-fade-up: fade-up 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  --animate-fade-in-slow: fade-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* MARK: - 인터랙션 상태 */
+@utility transition-interactive {
+  transition-property: color, background-color, border-color, box-shadow, outline-color, opacity,
+    transform, text-decoration-color;
+  transition-timing-function: var(--ease-standard);
+  transition-duration: 180ms;
+}
+
+/* 투명 아웃라인을 깔아두고 색만 전이. 두께 고정이라 레이아웃이 튀지 않음 */
+@utility focus-ring {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+
+  &:focus-visible {
+    outline-color: var(--color-ink);
+  }
+}
+
+/* 밑줄이 튀지 않게 decoration-color만 전이 */
+@utility underline-soft {
+  text-decoration-line: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+
+  &:hover {
+    text-decoration-color: currentColor;
+  }
+}
+
+@keyframes pulse-cascade {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+@keyframes spinner-sweep {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* MARK: - 라우트 전환 */
+
+/* 전환 중 오버레이가 클릭을 삼키지 않게 함 */
+::view-transition {
+  pointer-events: none;
+}
+
+/* 셸은 고정 앵커 */
+::view-transition-group(app-sidebar),
+::view-transition-group(app-header) {
+  animation: none;
+  z-index: 100;
+}
+::view-transition-old(app-sidebar),
+::view-transition-old(app-header) {
+  display: none;
+}
+::view-transition-new(app-sidebar),
+::view-transition-new(app-header) {
+  animation: none;
+}
+
+::view-transition-old(.nav-down) {
+  --slide-offset: -20px;
+  animation:
+    140ms ease-in both vt-fade reverse,
+    380ms var(--ease-standard) both vt-slide reverse;
+}
+::view-transition-new(.nav-down) {
+  --slide-offset: 20px;
+  animation:
+    220ms ease-out 130ms both vt-fade,
+    380ms var(--ease-standard) both vt-slide;
+}
+
+::view-transition-old(.nav-up) {
+  --slide-offset: 20px;
+  animation:
+    140ms ease-in both vt-fade reverse,
+    380ms var(--ease-standard) both vt-slide reverse;
+}
+::view-transition-new(.nav-up) {
+  --slide-offset: -20px;
+  animation:
+    220ms ease-out 130ms both vt-fade,
+    380ms var(--ease-standard) both vt-slide;
+}
+
+::view-transition-new(.reveal) {
+  animation: 200ms ease-out both vt-fade;
+}
+
+@keyframes vt-fade {
+  from {
+    opacity: 0;
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+@keyframes vt-slide {
+  from {
+    translate: 0 var(--slide-offset);
+  }
+  to {
+    translate: 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  /* 위치 이동은 모션 민감도 유발이 가장 큼. 전환 자체를 즉시 교체로 */
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
 }
