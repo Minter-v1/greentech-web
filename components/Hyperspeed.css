@@ -1,0 +1,13 @@
+#lights {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: absolute;
+}
+
+/* NOTE: 원본은 전역 canvas 셀렉터였음. 앱 전체 캔버스에 영향 가지 않도록 스코프 제한 */
+#lights canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
