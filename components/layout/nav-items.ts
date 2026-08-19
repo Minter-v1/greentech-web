@@ -2,10 +2,12 @@ import {
   Building2,
   CalendarClock,
   CalendarDays,
+  ClipboardCheck,
   LayoutDashboard,
   Moon,
   Users,
   Wallet,
+  ShieldUser,
   type LucideIcon,
 } from "lucide-react";
 
@@ -24,9 +26,16 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/employees", label: "사원", icon: Users },
   { href: "/organization", label: "조직", icon: Building2 },
   { href: "/attendance", label: "근태", icon: CalendarClock },
+  {
+    href: "/approvals",
+    label: "결재",
+    icon: ClipboardCheck,
+    roles: ["ROLE_ADMIN", "ROLE_HR", "ROLE_MANAGER"],
+  },
   { href: "/leaves", label: "휴가", icon: CalendarDays },
   { href: "/overtimes", label: "연장근무", icon: Moon },
   { href: "/payrolls", label: "급여", icon: Wallet },
+  { href: "/accounts", label: "계정", icon: ShieldUser, roles: ["ROLE_ADMIN"] },
 ];
 
 export function visibleNavItems(roles: string[]): NavItem[] {

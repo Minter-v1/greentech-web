@@ -78,18 +78,19 @@ export function AppSidebar({ roles, displayName, subtitle }: AppSidebarProps) {
       className="border-hairline"
       style={{ viewTransitionName: "app-sidebar" }}
     >
-      <SidebarHeader className="h-16 justify-center border-b border-hairline px-sm">
-        <Link
-          href="/"
-          className="flex items-center gap-xs rounded-sm px-xs py-xxs transition-colors hover:bg-canvas-soft-2"
-        >
-          <span className="flex size-6 shrink-0 items-center justify-center rounded-sm bg-primary text-on-primary">
-            <Leaf className="size-3.5" />
-          </span>
-          <span className="truncate text-body-md font-medium tracking-tight transition-opacity duration-300 group-data-[collapsible=icon]:opacity-0">
-            greentech
-          </span>
-        </Link>
+      <SidebarHeader className="h-16 justify-center border-b border-hairline">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild size="lg" tooltip="greentech" className="h-10">
+              <Link href="/">
+                <span className="flex size-6 shrink-0 items-center justify-center rounded-sm bg-primary text-on-primary">
+                  <Leaf className="size-3.5" />
+                </span>
+                <span className="truncate text-body-md font-medium tracking-tight">greentech</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarHeader>
 
       <SidebarContent>

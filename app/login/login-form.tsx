@@ -1,10 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { CircleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
+import { Modal } from "@/components/ui/modal";
 import { Spinner } from "@/components/ui/spinner";
 import { loginAction, type LoginFormState } from "./actions";
 
@@ -27,40 +27,59 @@ function SubmitButton() {
 }
 
 export function LoginForm({ next }: { next: string }) {
-  const [state, formAction] = useActionState<LoginFormState, FormData>(loginAction, {});
+  const [errorOpen, setErrorOpen] = useState(false);
+  const [state, formAction] = useActionState<LoginFormState, FormData>(
+    async (previous, formData) => {
+      const result = await loginAction(previous, formData);
+      if (result.message) setErrorOpen(true);
+      return result;
+    },
+    {},
+  );
 
   return (
-    <form action={formAction} className="flex flex-col gap-md">
-      <input type="hidden" name="next" value={next} />
+    <>
+      <form action={formAction} className="flex flex-col gap-md">
+        <input type="hidden" name="next" value={next} />
 
-      <Field label="아이디" htmlFor="username" error={state.fieldErrors?.username}>
-        <Input
-          id="username"
-          name="username"
-          autoComplete="username"
-          autoFocus
-          placeholder="아이디를 입력해주세요"
-        />
-      </Field>
+        <Field label="아이디" htmlFor="username" error={state.fieldErrors?.username}>
+          <Input
+            id="username"
+            name="username"
+            autoComplete="username"
+            autoFocus
+            placeholder="아이디를 입력해주세요"
+            required
+          />
+        </Field>
 
-      <Field label="비밀번호" htmlFor="password" error={state.fieldErrors?.password}>
-        <Input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          placeholder="비밀번호를 입력해주세요"
-        />
-      </Field>
+        <Field label="비밀번호" htmlFor="password" error={state.fieldErrors?.password}>
+          <Input
+            id="password"
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            placeholder="비밀번호를 입력해주세요"
+            required
+          />
+        </Field>
 
-      {state.message ? (
-        <p className="flex items-center gap-xs rounded-sm bg-error-soft px-sm py-xs text-body-sm text-error-deep">
-          <CircleAlert className="size-4 shrink-0" />
-          {state.message}
-        </p>
-      ) : null}
+        <SubmitButton />
+      </form>
 
-      <SubmitButton />
-    </form>
+      <Modal
+        open={errorOpen}
+        onOpenChange={setErrorOpen}
+        title="로그인에 실패했습니다"
+        description="아이디와 비밀번호를 다시 확인해주세요"
+        footer={
+          <Button type="button" onClick={() => setErrorOpen(false)}>
+            확인
+          </Button>
+        }
+      >
+        <p className="text-body-sm text-error-deep">{state.message}</p>
+      </Modal>
+    </>
   );
 }
