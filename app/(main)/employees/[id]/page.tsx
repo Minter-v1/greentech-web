@@ -5,16 +5,32 @@ import { EMPLOYMENT_TYPE_LABEL, EmployeeStatusBadge } from "@/components/ui/badg
 import { LinkButton } from "@/components/ui/button";
 import { Card, CardBody, CardHeader, EmptyState } from "@/components/ui/card";
 import { Table, Td, Th, Thead, Tr } from "@/components/ui/table";
+import { listAttachments } from "@/lib/api/attachments";
+import { getMe, hasRole } from "@/lib/api/auth";
 import { ApiError, orNull } from "@/lib/api/client";
+import { flattenDepartmentTree, getDepartmentTree, listPositions } from "@/lib/api/org";
 import {
   getEmployee,
   getEmployeeContact,
+  searchEmployees,
   listCertificates,
   listEducations,
   listEmploymentHistories,
   listFamilyMembers,
 } from "@/lib/api/employees";
 import { formatDate } from "@/lib/utils";
+import { EditEmployeeDialog } from "../edit-dialog";
+import { AttachmentPanel } from "../attachment-panel";
+import { DigitalBusinessCard } from "../digital-business-card";
+import { ProfilePhotoControl } from "../profile-photo-control";
+import {
+  CreateCertificateDialog,
+  CreateEducationDialog,
+  CreateFamilyMemberDialog,
+  EditCertificateDialog,
+  EditEducationDialog,
+  EditFamilyMemberDialog,
+} from "../detail-item-edit-dialogs";
 
 // MARK: - 사원 상세
 
@@ -65,13 +81,26 @@ export default async function EmployeeDetailPage({ params }: PageProps<"/employe
     throw error;
   }
 
-  const [contact, educations, certificates, familyMembers, histories] = await Promise.all([
-    orNull(() => getEmployeeContact(employeeId)),
-    listEducations(employeeId),
-    listCertificates(employeeId),
-    listFamilyMembers(employeeId),
-    listEmploymentHistories(employeeId),
-  ]);
+  const [contact, educations, certificates, familyMembers, histories, tree, positions, peers, me, attachments] =
+    await Promise.all([
+      orNull(() => getEmployeeContact(employeeId)),
+      listEducations(employeeId),
+      listCertificates(employeeId),
+      listFamilyMembers(employeeId),
+      listEmploymentHistories(employeeId),
+      getDepartmentTree(),
+      listPositions(true),
+      searchEmployees({ size: 200, status: "ACTIVE", sort: "empNo,asc" }),
+      getMe(),
+      orNull(() => listAttachments("EMPLOYEE", employeeId)),
+    ]);
+
+  const canManageEmployee = hasRole(me, "ROLE_ADMIN", "ROLE_HR");
+  const attachmentList = attachments ?? [];
+  const profilePhoto = attachmentList.find(
+    (attachment) =>
+      attachment.category === "PROFILE_PHOTO" && attachment.contentType?.startsWith("image/"),
+  );
 
   return (
     <PageTransition>
@@ -79,24 +108,56 @@ export default async function EmployeeDetailPage({ params }: PageProps<"/employe
         eyebrow={employee.empNo}
         title={employee.name}
         description={[employee.departmentName, employee.positionName].filter(Boolean).join(" · ")}
-        action={<LinkButton href="/employees">목록으로</LinkButton>}
+        action={
+          <div className="flex items-center gap-xs">
+            <LinkButton href="/employees">목록으로</LinkButton>
+            {canManageEmployee ? (
+              <EditEmployeeDialog
+                employee={employee}
+                departments={flattenDepartmentTree(tree).map((dept) => ({
+                  id: dept.id,
+                  label: dept.name,
+                }))}
+                positions={positions.map((position) => ({
+                  id: position.id,
+                  label: position.name,
+                }))}
+                managers={peers.content
+                  .filter((peer) => peer.id !== employee.id)
+                  .map((peer) => ({ id: peer.id, label: `${peer.name} (${peer.empNo})` }))}
+              />
+            ) : null}
+          </div>
+        }
       />
 
       <div className="grid gap-md xl:grid-cols-3">
         <Card className="xl:col-span-2">
           <CardHeader title="기본 정보" action={<EmployeeStatusBadge status={employee.status} />} />
-          <CardBody className="grid grid-cols-2 gap-lg sm:grid-cols-3">
-            <Row label="사번" value={employee.empNo} />
-            <Row label="성명" value={employee.name} />
-            <Row label="영문명" value={employee.nameEn} />
-            <Row label="주민등록번호" value={employee.residentNoMasked} />
-            <Row label="생년월일" value={formatDate(employee.birthDate)} />
-            <Row label="이메일" value={employee.email} />
-            <Row label="부서" value={employee.departmentName} />
-            <Row label="직위" value={employee.positionName} />
-            <Row label="고용형태" value={EMPLOYMENT_TYPE_LABEL[employee.employmentType]} />
-            <Row label="입사일" value={formatDate(employee.hireDate)} />
-            <Row label="퇴사일" value={employee.resignDate ? formatDate(employee.resignDate) : "-"} />
+          <CardBody className="flex flex-col gap-lg sm:flex-row">
+            <ProfilePhotoControl
+              key={profilePhoto?.id ?? "empty"}
+              employeeId={employeeId}
+              employeeName={employee.name}
+              photo={profilePhoto}
+              canManage={canManageEmployee}
+            />
+            <div className="grid flex-1 grid-cols-2 gap-lg sm:grid-cols-3">
+              <Row label="사번" value={employee.empNo} />
+              <Row label="성명" value={employee.name} />
+              <Row label="영문명" value={employee.nameEn} />
+              <Row label="주민등록번호" value={employee.residentNoMasked} />
+              <Row label="생년월일" value={formatDate(employee.birthDate)} />
+              <Row label="이메일" value={employee.email} />
+              <Row label="부서" value={employee.departmentName} />
+              <Row label="직위" value={employee.positionName} />
+              <Row label="고용형태" value={EMPLOYMENT_TYPE_LABEL[employee.employmentType]} />
+              <Row label="입사일" value={formatDate(employee.hireDate)} />
+              <Row
+                label="퇴사일"
+                value={employee.resignDate ? formatDate(employee.resignDate) : "-"}
+              />
+            </div>
           </CardBody>
         </Card>
 
@@ -118,7 +179,10 @@ export default async function EmployeeDetailPage({ params }: PageProps<"/employe
 
       <div className="mt-lg grid gap-md xl:grid-cols-2">
         <Card>
-          <CardHeader title="학력" />
+          <CardHeader
+            title="학력"
+            action={canManageEmployee ? <CreateEducationDialog employeeId={employeeId} /> : null}
+          />
           {educations.length === 0 ? (
             <CardBody>
               <EmptyState message="등록된 학력이 없습니다" />
@@ -131,6 +195,7 @@ export default async function EmployeeDetailPage({ params }: PageProps<"/employe
                   <Th>전공</Th>
                   <Th>학위</Th>
                   <Th>졸업일</Th>
+                  {canManageEmployee ? <Th className="w-20 text-center">작업</Th> : null}
                 </tr>
               </Thead>
               <tbody>
@@ -142,6 +207,11 @@ export default async function EmployeeDetailPage({ params }: PageProps<"/employe
                       {education.degree ? DEGREE_LABEL[education.degree] : "-"}
                     </Td>
                     <Td className="text-body">{formatDate(education.graduationDate)}</Td>
+                    {canManageEmployee ? (
+                      <Td className="text-center">
+                        <EditEducationDialog employeeId={employeeId} education={education} />
+                      </Td>
+                    ) : null}
                   </Tr>
                 ))}
               </tbody>
@@ -150,7 +220,10 @@ export default async function EmployeeDetailPage({ params }: PageProps<"/employe
         </Card>
 
         <Card>
-          <CardHeader title="자격증" />
+          <CardHeader
+            title="자격증"
+            action={canManageEmployee ? <CreateCertificateDialog employeeId={employeeId} /> : null}
+          />
           {certificates.length === 0 ? (
             <CardBody>
               <EmptyState message="등록된 자격증이 없습니다" />
@@ -163,6 +236,7 @@ export default async function EmployeeDetailPage({ params }: PageProps<"/employe
                   <Th>발급기관</Th>
                   <Th>취득일</Th>
                   <Th>만료일</Th>
+                  {canManageEmployee ? <Th className="w-20 text-center">작업</Th> : null}
                 </tr>
               </Thead>
               <tbody>
@@ -172,6 +246,11 @@ export default async function EmployeeDetailPage({ params }: PageProps<"/employe
                     <Td className="text-body">{certificate.issuer ?? "-"}</Td>
                     <Td className="text-body">{formatDate(certificate.acquiredDate)}</Td>
                     <Td className="text-body">{formatDate(certificate.expiryDate)}</Td>
+                    {canManageEmployee ? (
+                      <Td className="text-center">
+                        <EditCertificateDialog employeeId={employeeId} certificate={certificate} />
+                      </Td>
+                    ) : null}
                   </Tr>
                 ))}
               </tbody>
@@ -180,7 +259,10 @@ export default async function EmployeeDetailPage({ params }: PageProps<"/employe
         </Card>
 
         <Card>
-          <CardHeader title="가족사항" />
+          <CardHeader
+            title="가족사항"
+            action={canManageEmployee ? <CreateFamilyMemberDialog employeeId={employeeId} /> : null}
+          />
           {familyMembers.length === 0 ? (
             <CardBody>
               <EmptyState message="등록된 가족사항이 없습니다" />
@@ -193,6 +275,7 @@ export default async function EmployeeDetailPage({ params }: PageProps<"/employe
                   <Th>관계</Th>
                   <Th>생년월일</Th>
                   <Th>부양</Th>
+                  {canManageEmployee ? <Th className="w-20 text-center">작업</Th> : null}
                 </tr>
               </Thead>
               <tbody>
@@ -202,6 +285,11 @@ export default async function EmployeeDetailPage({ params }: PageProps<"/employe
                     <Td className="text-body">{RELATION_LABEL[member.relation] ?? member.relation}</Td>
                     <Td className="text-body">{formatDate(member.birthDate)}</Td>
                     <Td className="text-body">{member.dependent ? "예" : "아니오"}</Td>
+                    {canManageEmployee ? (
+                      <Td className="text-center">
+                        <EditFamilyMemberDialog employeeId={employeeId} member={member} />
+                      </Td>
+                    ) : null}
                   </Tr>
                 ))}
               </tbody>
@@ -239,6 +327,24 @@ export default async function EmployeeDetailPage({ params }: PageProps<"/employe
           )}
         </Card>
       </div>
+
+      <AttachmentPanel
+        employeeId={employeeId}
+        attachments={attachmentList.filter((attachment) => attachment.category !== "PROFILE_PHOTO")}
+        canManage={canManageEmployee}
+      />
+
+      <DigitalBusinessCard
+        empNo={employee.empNo}
+        name={employee.name}
+        nameEn={employee.nameEn}
+        departmentName={employee.departmentName}
+        positionName={employee.positionName}
+        email={employee.email}
+        mobile={contact?.mobile}
+        tel={contact?.tel}
+        address={[contact?.address1, contact?.address2].filter(Boolean).join(" ")}
+      />
     </PageTransition>
   );
 }
