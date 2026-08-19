@@ -2,13 +2,21 @@ import type { Metadata } from "next";
 import { PageHeader } from "@/components/layout/page-header";
 import { PageTransition } from "@/components/layout/page-transition";
 import { ApprovalStatusBadge } from "@/components/ui/badge";
+import { LinkButton } from "@/components/ui/button";
 import { Card, CardBody, CardHeader, EmptyState, Stat } from "@/components/ui/card";
 import { PillTabs } from "@/components/ui/pill-tabs";
 import { Table, Td, Th, Thead, Tr } from "@/components/ui/table";
 import { orNull } from "@/lib/api/client";
-import { getMyLeaveBalances, listLeaveRequests } from "@/lib/api/leaves";
+import { getMe, hasRole } from "@/lib/api/auth";
+import {
+  getMyLeaveBalances,
+  listLeaveRequests,
+  listLeaveTypes,
+  listMyLeaveRequests,
+} from "@/lib/api/leaves";
 import type { ApprovalStatus } from "@/lib/api/types";
 import { formatDate } from "@/lib/utils";
+import { LeaveRequestDialog } from "./request-dialog";
 
 export const metadata: Metadata = { title: "휴가 · greentech" };
 
@@ -25,18 +33,29 @@ const STATUS_TABS: Array<{ value: ApprovalStatus | ""; label: string }> = [
 export default async function LeavesPage({ searchParams }: PageProps<"/leaves">) {
   const params = await searchParams;
   const status = (typeof params.status === "string" ? params.status : "") as ApprovalStatus | "";
+  const me = await getMe();
+  const canApprove = hasRole(me, "ROLE_ADMIN", "ROLE_HR", "ROLE_MANAGER");
 
-  const [requests, balances] = await Promise.all([
-    listLeaveRequests({ status: status || undefined, size: 30 }),
+  const [requests, balances, leaveTypes] = await Promise.all([
+    canApprove
+      ? listLeaveRequests({ status: status || undefined, size: 30 })
+      : listMyLeaveRequests({ size: 30 }),
     orNull(() => getMyLeaveBalances()),
+    listLeaveTypes(),
   ]);
 
   return (
     <PageTransition>
       <PageHeader
         eyebrow="휴가"
-        title="휴가 관리"
+        title={canApprove ? "휴가 관리" : "내 휴가"}
         description={`신청 ${requests.totalElements}건`}
+        action={
+          <div className="flex items-center gap-xs">
+            {canApprove ? <LinkButton href="/approvals">결재 처리</LinkButton> : null}
+            <LeaveRequestDialog leaveTypes={leaveTypes} />
+          </div>
+        }
       />
 
       {balances && balances.length > 0 ? (
@@ -54,14 +73,16 @@ export default async function LeavesPage({ searchParams }: PageProps<"/leaves">)
 
       <Card>
         <CardHeader title="신청 목록" />
-        <CardBody className="border-b border-hairline py-sm">
-          <PillTabs
-            label="결재 상태 필터"
-            tabs={STATUS_TABS}
-            active={status}
-            hrefFor={(value) => (value ? `/leaves?status=${value}` : "/leaves")}
-          />
-        </CardBody>
+        {canApprove ? (
+          <CardBody className="border-b border-hairline py-sm">
+            <PillTabs
+              label="결재 상태 필터"
+              tabs={STATUS_TABS}
+              active={status}
+              hrefFor={(value) => (value ? `/leaves?status=${value}` : "/leaves")}
+            />
+          </CardBody>
+        ) : null}
 
         {requests.content.length === 0 ? (
           <CardBody>

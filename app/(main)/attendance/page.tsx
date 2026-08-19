@@ -4,7 +4,7 @@ import { PageTransition } from "@/components/layout/page-transition";
 import { AttendanceStatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader, EmptyState, Stat } from "@/components/ui/card";
-import { Input } from "@/components/ui/field";
+import { MonthPicker } from "@/components/ui/date-picker";
 import { Table, Td, Th, Thead, Tr } from "@/components/ui/table";
 import { getMyAttendance } from "@/lib/api/attendances";
 import { orNull } from "@/lib/api/client";
@@ -37,11 +37,10 @@ export default async function AttendancePage({ searchParams }: PageProps<"/atten
       <Card className="mb-lg">
         <CardBody>
           <form className="flex items-end gap-sm">
-            <Input
-              type="month"
+            <MonthPicker
               name="yearMonth"
               defaultValue={yearMonth}
-              aria-label="조회월"
+              ariaLabel="조회월"
               className="w-[180px]"
             />
             <Button type="submit">조회</Button>

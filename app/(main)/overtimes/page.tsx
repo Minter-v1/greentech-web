@@ -2,12 +2,15 @@ import type { Metadata } from "next";
 import { PageHeader } from "@/components/layout/page-header";
 import { PageTransition } from "@/components/layout/page-transition";
 import { ApprovalStatusBadge } from "@/components/ui/badge";
+import { LinkButton } from "@/components/ui/button";
 import { Card, CardBody, CardHeader, EmptyState } from "@/components/ui/card";
 import { PillTabs } from "@/components/ui/pill-tabs";
 import { Table, Td, Th, Thead, Tr } from "@/components/ui/table";
-import { listOvertimes } from "@/lib/api/overtimes";
+import { getMe, hasRole } from "@/lib/api/auth";
+import { listMyOvertimes, listOvertimes } from "@/lib/api/overtimes";
 import type { ApprovalStatus } from "@/lib/api/types";
 import { formatDate, formatMinutes, formatTime } from "@/lib/utils";
+import { OvertimeRequestDialog } from "./request-dialog";
 
 export const metadata: Metadata = { title: "연장근무 · greentech" };
 
@@ -30,27 +33,39 @@ const STATUS_TABS: Array<{ value: ApprovalStatus | ""; label: string }> = [
 export default async function OvertimesPage({ searchParams }: PageProps<"/overtimes">) {
   const params = await searchParams;
   const status = (typeof params.status === "string" ? params.status : "") as ApprovalStatus | "";
+  const me = await getMe();
+  const canApprove = hasRole(me, "ROLE_ADMIN", "ROLE_HR", "ROLE_MANAGER");
 
-  const requests = await listOvertimes({ status: status || undefined, size: 30 });
+  const requests = canApprove
+    ? await listOvertimes({ status: status || undefined, size: 30 })
+    : await listMyOvertimes({ size: 30 });
 
   return (
     <PageTransition>
       <PageHeader
         eyebrow="연장근무"
-        title="연장근무 관리"
+        title={canApprove ? "연장근무 관리" : "내 연장근무"}
         description={`신청 ${requests.totalElements}건`}
+        action={
+          <div className="flex items-center gap-xs">
+            {canApprove ? <LinkButton href="/approvals">결재 처리</LinkButton> : null}
+            <OvertimeRequestDialog />
+          </div>
+        }
       />
 
       <Card>
         <CardHeader title="신청 목록" />
-        <CardBody className="border-b border-hairline py-sm">
-          <PillTabs
-            label="결재 상태 필터"
-            tabs={STATUS_TABS}
-            active={status}
-            hrefFor={(value) => (value ? `/overtimes?status=${value}` : "/overtimes")}
-          />
-        </CardBody>
+        {canApprove ? (
+          <CardBody className="border-b border-hairline py-sm">
+            <PillTabs
+              label="결재 상태 필터"
+              tabs={STATUS_TABS}
+              active={status}
+              hrefFor={(value) => (value ? `/overtimes?status=${value}` : "/overtimes")}
+            />
+          </CardBody>
+        ) : null}
 
         {requests.content.length === 0 ? (
           <CardBody>
