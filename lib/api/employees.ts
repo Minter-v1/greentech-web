@@ -1,15 +1,23 @@
 import { apiFetch } from "./client";
 import type {
   CertificateRes,
+  CertificateCreateReq,
+  CertificatePatchReq,
+  EducationCreateReq,
   EducationRes,
+  EducationPatchReq,
   EmployeeContactRes,
+  EmployeeCreateReq,
   EmployeeDetailRes,
   EmployeeResignReq,
+  EmployeeStatusChangeReq,
   EmployeeSearchParams,
   EmployeeSummaryRes,
-  EmployeeUpdateReq,
+  EmployeePatchReq,
   EmploymentHistoryRes,
   FamilyMemberRes,
+  FamilyMemberCreateReq,
+  FamilyMemberPatchReq,
   PageResult,
 } from "./types";
 
@@ -22,18 +30,37 @@ export function searchEmployees(params: EmployeeSearchParams = {}) {
   });
 }
 
+export function createEmployee(body: EmployeeCreateReq) {
+  return apiFetch<EmployeeDetailRes>("/api/v1/employees", { method: "POST", body });
+}
+
 export function getEmployee(id: number) {
   return apiFetch<EmployeeDetailRes>(`/api/v1/employees/${id}`);
 }
 
-/** 전체 덮어쓰기. 현재 상세를 병합해 호출할 것 (EmployeeUpdateReq 주석 참고) */
-export function updateEmployee(id: number, body: EmployeeUpdateReq) {
-  return apiFetch<EmployeeDetailRes>(`/api/v1/employees/${id}`, { method: "PUT", body });
+/** 부분 수정. 보낸 키만 반영됨 */
+export function patchEmployee(id: number, body: EmployeePatchReq) {
+  return apiFetch<EmployeeDetailRes>(`/api/v1/employees/${id}`, { method: "PATCH", body });
 }
 
-/** 상태와 퇴사일을 함께 변경하고 RESIGN 이력을 남김 */
+// MARK: 재직 상태 전이
+
+/** ACTIVE·ON_LEAVE 에서만 가능. 이미 RESIGNED 면 409 */
 export function resignEmployee(id: number, body: EmployeeResignReq) {
-  return apiFetch<EmployeeDetailRes>(`/api/v1/employees/${id}/resign`, {
+  return apiFetch<EmployeeDetailRes>(`/api/v1/employees/${id}/resign`, { method: "PATCH", body });
+}
+
+/** 퇴사일을 비우고 ACTIVE 로 되돌림. 이미 ACTIVE 면 409 */
+export function reinstateEmployee(id: number, body: EmployeeStatusChangeReq) {
+  return apiFetch<EmployeeDetailRes>(`/api/v1/employees/${id}/reinstate`, {
+    method: "PATCH",
+    body,
+  });
+}
+
+/** ACTIVE 에서만 가능. 그 외 상태면 409 */
+export function leaveOfAbsenceEmployee(id: number, body: EmployeeStatusChangeReq) {
+  return apiFetch<EmployeeDetailRes>(`/api/v1/employees/${id}/leave-of-absence`, {
     method: "PATCH",
     body,
   });
@@ -47,12 +74,54 @@ export function listEducations(id: number) {
   return apiFetch<EducationRes[]>(`/api/v1/employees/${id}/educations`);
 }
 
+export function createEducation(id: number, body: EducationCreateReq) {
+  return apiFetch<EducationRes>(`/api/v1/employees/${id}/educations`, {
+    method: "POST",
+    body,
+  });
+}
+
+export function patchEducation(id: number, body: EducationPatchReq) {
+  return apiFetch<EducationRes>(`/api/v1/employees/educations/${id}`, {
+    method: "PATCH",
+    body,
+  });
+}
+
 export function listCertificates(id: number) {
   return apiFetch<CertificateRes[]>(`/api/v1/employees/${id}/certificates`);
 }
 
+export function createCertificate(id: number, body: CertificateCreateReq) {
+  return apiFetch<CertificateRes>(`/api/v1/employees/${id}/certificates`, {
+    method: "POST",
+    body,
+  });
+}
+
+export function patchCertificate(id: number, body: CertificatePatchReq) {
+  return apiFetch<CertificateRes>(`/api/v1/employees/certificates/${id}`, {
+    method: "PATCH",
+    body,
+  });
+}
+
 export function listFamilyMembers(id: number) {
   return apiFetch<FamilyMemberRes[]>(`/api/v1/employees/${id}/family-members`);
+}
+
+export function createFamilyMember(id: number, body: FamilyMemberCreateReq) {
+  return apiFetch<FamilyMemberRes>(`/api/v1/employees/${id}/family-members`, {
+    method: "POST",
+    body,
+  });
+}
+
+export function patchFamilyMember(id: number, body: FamilyMemberPatchReq) {
+  return apiFetch<FamilyMemberRes>(`/api/v1/employees/family-members/${id}`, {
+    method: "PATCH",
+    body,
+  });
 }
 
 export function listEmploymentHistories(id: number) {

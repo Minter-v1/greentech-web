@@ -3,8 +3,9 @@ import type {
   DepartmentCreateReq,
   DepartmentRes,
   DepartmentTreeRes,
-  DepartmentUpdateReq,
+  DepartmentPatchReq,
   JobPositionCreateReq,
+  JobPositionPatchReq,
   JobPositionRes,
 } from "./types";
 
@@ -26,8 +27,8 @@ export function createDepartment(body: DepartmentCreateReq) {
   return apiFetch<DepartmentRes>("/api/v1/departments", { method: "POST", body });
 }
 
-export function updateDepartment(id: number, body: DepartmentUpdateReq) {
-  return apiFetch<DepartmentRes>(`/api/v1/departments/${id}`, { method: "PUT", body });
+export function patchDepartment(id: number, body: DepartmentPatchReq) {
+  return apiFetch<DepartmentRes>(`/api/v1/departments/${id}`, { method: "PATCH", body });
 }
 
 export function deactivateDepartment(id: number) {
@@ -42,6 +43,10 @@ export function listPositions(activeOnly?: boolean) {
 
 export function createPosition(body: JobPositionCreateReq) {
   return apiFetch<JobPositionRes>("/api/v1/positions", { method: "POST", body });
+}
+
+export function patchPosition(id: number, body: JobPositionPatchReq) {
+  return apiFetch<JobPositionRes>(`/api/v1/positions/${id}`, { method: "PATCH", body });
 }
 
 export function deactivatePosition(id: number) {

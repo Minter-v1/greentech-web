@@ -92,6 +92,54 @@ export interface MeRes {
   roles: string[];
 }
 
+// MARK: 계정
+export interface AccountRes {
+  id: number;
+  username: string;
+  employeeId?: number;
+  employeeName?: string;
+  enabled: boolean;
+  locked: boolean;
+  roles: string[];
+  lastLoginAt?: string;
+}
+
+/** employeeId 를 null 로 보내면 연결 해제 */
+export interface AccountEmployeeLinkReq {
+  employeeId: number | null;
+}
+
+export interface RoleRes {
+  code: string;
+  name: string;
+  description?: string;
+}
+
+export interface AccountCreateReq {
+  username: string;
+  temporaryPassword: string;
+  employeeId?: number;
+  roleCodes: string[];
+}
+
+export interface AccountRolesUpdateReq {
+  roleCodes: string[];
+}
+
+export interface AccountStatusUpdateReq {
+  enabled: boolean;
+  locked: boolean;
+}
+
+export interface AccountPasswordResetReq {
+  temporaryPassword: string;
+}
+
+export interface PasswordChangeReq {
+  currentPassword: string;
+  newPassword: string;
+}
+
 // MARK: 조직
 export interface DepartmentRes {
   id: number;
@@ -117,10 +165,11 @@ export interface DepartmentCreateReq {
   sortOrder?: number;
 }
 
-export interface DepartmentUpdateReq {
-  name: string;
-  parentId?: number;
-  sortOrder?: number;
+export interface DepartmentPatchReq {
+  name?: string | null;
+  parentId?: number | null;
+  sortOrder?: number | null;
+  active?: boolean | null;
 }
 
 export interface JobPositionRes {
@@ -135,6 +184,12 @@ export interface JobPositionCreateReq {
   code: string;
   name: string;
   levelNo: number;
+}
+
+export interface JobPositionPatchReq {
+  name?: string | null;
+  levelNo?: number | null;
+  active?: boolean | null;
 }
 
 // MARK: 사원
@@ -170,6 +225,22 @@ export interface EmployeeDetailRes {
   resignDate?: string;
 }
 
+export interface EmployeeCreateReq {
+  empNo: string;
+  name: string;
+  nameEn?: string;
+  /** 암호화 저장. 000000-0000000 형식 */
+  residentNo?: string;
+  birthDate?: string;
+  gender?: Gender;
+  email?: string;
+  departmentId?: number;
+  jobPositionId?: number;
+  managerId?: number;
+  employmentType: EmploymentType;
+  hireDate: string;
+}
+
 export interface EmployeeSearchParams extends PageParams {
   keyword?: string;
   departmentId?: number;
@@ -177,25 +248,93 @@ export interface EmployeeSearchParams extends PageParams {
 }
 
 /**
- * NOTE: WAS의 update는 부분 갱신이 아님. name 외 필드도 null-guard 없이 덮어쓰므로
- * 빠뜨린 값은 지워짐. 항상 현재 상세를 읽어 전체를 실어 보낼 것
+ * 부분 수정. 키 생략은 기존 값 유지, null 전송은 값 비움.
+ * 상태 변경은 전용 엔드포인트를 쓸 것
  */
-export interface EmployeeUpdateReq {
-  name: string;
-  nameEn?: string;
-  birthDate?: string;
-  gender?: Gender;
-  email?: string;
-  departmentId?: number;
-  jobPositionId?: number;
-  managerId?: number;
-  employmentType?: EmploymentType;
-  status?: EmployeeStatus;
+export interface EmployeePatchReq {
+  name?: string | null;
+  nameEn?: string | null;
+  birthDate?: string | null;
+  gender?: Gender | null;
+  email?: string | null;
+  departmentId?: number | null;
+  jobPositionId?: number | null;
+  managerId?: number | null;
+  employmentType?: EmploymentType | null;
+  /** 부서·직위 변경 시 발령 이력에 남길 사유 */
+  reason?: string | null;
 }
 
 export interface EmployeeResignReq {
   resignDate: string;
   reason?: string;
+}
+
+/** 복직·휴직 공통 */
+export interface EmployeeStatusChangeReq {
+  effectiveDate: string;
+  reason?: string;
+}
+
+export interface EmployeeContactUpsertReq {
+  mobile?: string;
+  tel?: string;
+  zipCode?: string;
+  address1?: string;
+  address2?: string;
+  emergencyName?: string;
+  emergencyRelation?: string;
+  emergencyPhone?: string;
+}
+
+export interface EducationCreateReq {
+  schoolName: string;
+  degree: Degree;
+  major?: string;
+  admissionDate?: string;
+  graduationDate?: string;
+  graduated?: boolean;
+}
+
+export interface EducationPatchReq {
+  schoolName?: string | null;
+  degree?: Degree | null;
+  major?: string | null;
+  admissionDate?: string | null;
+  graduationDate?: string | null;
+  graduated?: boolean | null;
+}
+
+export interface CertificateCreateReq {
+  name: string;
+  issuer?: string;
+  licenseNo?: string;
+  acquiredDate?: string;
+  expiryDate?: string;
+}
+
+export interface CertificatePatchReq {
+  name?: string | null;
+  issuer?: string | null;
+  licenseNo?: string | null;
+  acquiredDate?: string | null;
+  expiryDate?: string | null;
+}
+
+export interface FamilyMemberCreateReq {
+  name: string;
+  relation: FamilyRelation;
+  birthDate?: string;
+  dependent?: boolean;
+  cohabiting?: boolean;
+}
+
+export interface FamilyMemberPatchReq {
+  name?: string | null;
+  relation?: FamilyRelation | null;
+  birthDate?: string | null;
+  dependent?: boolean | null;
+  cohabiting?: boolean | null;
 }
 
 export interface EmployeeContactRes {
@@ -276,6 +415,12 @@ export interface AttendanceMonthlyRes {
   records: AttendanceRes[];
 }
 
+export interface HolidayCreateReq {
+  calendarDate: string;
+  dayType: DayType;
+  holidayName?: string;
+}
+
 export interface WorkCalendarRes {
   id: number;
   calendarDate: string;
@@ -347,7 +492,6 @@ export interface OvertimeRequestRes {
 }
 
 export interface OvertimeCreateReq {
-  workDate: string;
   startAt: string;
   endAt: string;
   overtimeType: OvertimeType;
@@ -379,6 +523,11 @@ export interface PayslipSummaryRes {
   grossPay: number;
   totalDeduction: number;
   netPay: number;
+}
+
+export interface PayrollCalculateReq {
+  payYearMonth: string;
+  payDate?: string;
 }
 
 export interface PayslipItemRes {
