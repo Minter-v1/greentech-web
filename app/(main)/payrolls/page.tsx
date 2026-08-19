@@ -5,23 +5,68 @@ import { PayrollStatusBadge } from "@/components/ui/badge";
 import { TextLink } from "@/components/ui/button";
 import { Card, CardBody, CardHeader, EmptyState, Stat } from "@/components/ui/card";
 import { Table, Td, Th, Thead, Tr } from "@/components/ui/table";
+import { getMe, hasRole } from "@/lib/api/auth";
 import { orNull } from "@/lib/api/client";
-import { listPayrollRuns, listRunPayslips } from "@/lib/api/payrolls";
+import { listMyPayslips, listPayrollRuns, listRunPayslips } from "@/lib/api/payrolls";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { ConfirmPayrollButton, RunPayrollDialog } from "./payroll-controls";
 
 export const metadata: Metadata = { title: "급여 · greentech" };
 
-// MARK: - 급여 정산
-// 선택된 정산 회차의 명세서 목록을 함께 조회
+// MARK: - 급여
 
-export default async function PayrollsPage({ searchParams }: PageProps<"/payrolls">) {
-  const params = await searchParams;
+async function MyPayslips() {
+  const payslips = await listMyPayslips();
+
+  return (
+    <PageTransition>
+      <PageHeader
+        eyebrow="급여"
+        title="내 급여명세서"
+        description={`확인 가능한 명세서 ${payslips.length}건`}
+      />
+      <Card>
+        <CardHeader title="급여명세서" />
+        {payslips.length === 0 ? (
+          <CardBody>
+            <EmptyState message="확인 가능한 급여명세서가 없습니다" />
+          </CardBody>
+        ) : (
+          <Table>
+            <Thead>
+              <tr>
+                <Th>정산월</Th>
+                <Th className="text-right">지급</Th>
+                <Th className="text-right">공제</Th>
+                <Th className="text-right">실지급</Th>
+                <Th className="w-20 text-center">상세</Th>
+              </tr>
+            </Thead>
+            <tbody>
+              {payslips.map((payslip) => (
+                <Tr key={payslip.id}>
+                  <Td className="font-medium">{payslip.payYearMonth}</Td>
+                  <Td className="text-right text-body">{formatCurrency(payslip.grossPay)}</Td>
+                  <Td className="text-right text-body">
+                    {formatCurrency(payslip.totalDeduction)}
+                  </Td>
+                  <Td className="text-right font-medium">{formatCurrency(payslip.netPay)}</Td>
+                  <Td className="text-center">
+                    <TextLink href={`/payrolls/payslips/${payslip.id}`}>보기</TextLink>
+                  </Td>
+                </Tr>
+              ))}
+            </tbody>
+          </Table>
+        )}
+      </Card>
+    </PageTransition>
+  );
+}
+
+async function PayrollManagement({ runId }: { runId?: number }) {
   const runs = await listPayrollRuns({ size: 12 });
-
-  const requestedRunId = typeof params.runId === "string" ? Number(params.runId) : undefined;
-  const selectedRun =
-    runs.content.find((run) => run.id === requestedRunId) ?? runs.content[0] ?? null;
-
+  const selectedRun = runs.content.find((run) => run.id === runId) ?? runs.content[0] ?? null;
   const payslips = selectedRun
     ? ((await orNull(() => listRunPayslips(selectedRun.id))) ?? [])
     : [];
@@ -31,7 +76,8 @@ export default async function PayrollsPage({ searchParams }: PageProps<"/payroll
       <PageHeader
         eyebrow="급여"
         title="급여 정산"
-        description={selectedRun ? `${selectedRun.payYearMonth} 정산 기준` : undefined}
+        description={selectedRun ? `${selectedRun.payYearMonth} 정산 기준` : "정산 회차를 생성하세요"}
+        action={<RunPayrollDialog />}
       />
 
       {selectedRun ? (
@@ -79,9 +125,7 @@ export default async function PayrollsPage({ searchParams }: PageProps<"/payroll
                       </TextLink>
                     </Td>
                     <Td className="text-body">{run.targetCount}명</Td>
-                    <Td>
-                      <PayrollStatusBadge status={run.status} />
-                    </Td>
+                    <Td><PayrollStatusBadge status={run.status} /></Td>
                   </Tr>
                 ))}
               </tbody>
@@ -93,6 +137,11 @@ export default async function PayrollsPage({ searchParams }: PageProps<"/payroll
           <CardHeader
             title="명세서"
             description={selectedRun ? `${selectedRun.payYearMonth} · ${payslips.length}건` : undefined}
+            action={
+              selectedRun?.status === "CALCULATED" ? (
+                <ConfirmPayrollButton runId={selectedRun.id} />
+              ) : undefined
+            }
           />
           {payslips.length === 0 ? (
             <CardBody>
@@ -108,6 +157,7 @@ export default async function PayrollsPage({ searchParams }: PageProps<"/payroll
                   <Th className="text-right">지급</Th>
                   <Th className="text-right">공제</Th>
                   <Th className="text-right">실지급</Th>
+                  <Th className="w-16 text-center">상세</Th>
                 </tr>
               </Thead>
               <tbody>
@@ -121,6 +171,9 @@ export default async function PayrollsPage({ searchParams }: PageProps<"/payroll
                       {formatCurrency(payslip.totalDeduction)}
                     </Td>
                     <Td className="text-right font-medium">{formatCurrency(payslip.netPay)}</Td>
+                    <Td className="text-center">
+                      <TextLink href={`/payrolls/payslips/${payslip.id}`}>보기</TextLink>
+                    </Td>
                   </Tr>
                 ))}
               </tbody>
@@ -130,4 +183,13 @@ export default async function PayrollsPage({ searchParams }: PageProps<"/payroll
       </div>
     </PageTransition>
   );
+}
+
+export default async function PayrollsPage({ searchParams }: PageProps<"/payrolls">) {
+  const me = await getMe();
+  if (!hasRole(me, "ROLE_ADMIN", "ROLE_HR")) return <MyPayslips />;
+
+  const params = await searchParams;
+  const runId = typeof params.runId === "string" ? Number(params.runId) : undefined;
+  return <PayrollManagement runId={Number.isInteger(runId) ? runId : undefined} />;
 }
