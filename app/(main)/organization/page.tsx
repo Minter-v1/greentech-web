@@ -1,19 +1,33 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/layout/page-header";
 import { PageTransition } from "@/components/layout/page-transition";
-import { ActiveBadge, Badge } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardBody, CardHeader, EmptyState } from "@/components/ui/card";
 import { Table, Td, Th, Thead, Tr } from "@/components/ui/table";
+import { getMe, hasRole } from "@/lib/api/auth";
 import { flattenDepartmentTree, getDepartmentTree, listPositions } from "@/lib/api/org";
 import type { DepartmentTreeRes } from "@/lib/api/types";
-import { CreateDepartmentDialog, CreatePositionDialog } from "./create-dialogs";
+import { DepartmentActiveToggle, PositionActiveToggle } from "./active-toggles";
+import {
+  CreateDepartmentDialog,
+  CreatePositionDialog,
+  EditPositionDialog,
+} from "./create-dialogs";
 
 export const metadata: Metadata = { title: "조직 · greentech" };
 
 // MARK: - 조직도
 // 부서 계층 + 직위 서열
 
-function DepartmentNode({ node, depth = 0 }: { node: DepartmentTreeRes; depth?: number }) {
+function DepartmentNode({
+  node,
+  canManage,
+  depth = 0,
+}: {
+  node: DepartmentTreeRes;
+  canManage: boolean;
+  depth?: number;
+}) {
   return (
     <>
       <div
@@ -26,16 +40,30 @@ function DepartmentNode({ node, depth = 0 }: { node: DepartmentTreeRes; depth?: 
           {node.name}
         </span>
         {!node.active ? <Badge tone="inactive">미사용</Badge> : null}
+        {canManage ? (
+          <span className="ml-auto">
+            <DepartmentActiveToggle
+              departmentId={node.id}
+              name={node.name}
+              active={node.active}
+            />
+          </span>
+        ) : null}
       </div>
       {node.children?.map((child) => (
-        <DepartmentNode key={child.id} node={child} depth={depth + 1} />
+        <DepartmentNode key={child.id} node={child} canManage={canManage} depth={depth + 1} />
       ))}
     </>
   );
 }
 
 export default async function OrganizationPage() {
-  const [tree, positions] = await Promise.all([getDepartmentTree(), listPositions()]);
+  const [me, tree, positions] = await Promise.all([
+    getMe(),
+    getDepartmentTree(),
+    listPositions(),
+  ]);
+  const canManage = hasRole(me, "ROLE_ADMIN", "ROLE_HR");
 
   const departments = flattenDepartmentTree(tree);
   const nextLevel = positions.reduce((max, position) => Math.max(max, position.levelNo), 0) + 1;
@@ -49,13 +77,15 @@ export default async function OrganizationPage() {
           <CardHeader
             title="부서"
             description={`최상위 ${tree.length}개 본부 · 전체 ${departments.length}개`}
-            action={<CreateDepartmentDialog departments={departments} />}
+            action={canManage ? <CreateDepartmentDialog departments={departments} /> : undefined}
           />
           <CardBody>
             {tree.length === 0 ? (
               <EmptyState message="등록된 부서가 없습니다" />
             ) : (
-              tree.map((node) => <DepartmentNode key={node.id} node={node} />)
+              tree.map((node) => (
+                <DepartmentNode key={node.id} node={node} canManage={canManage} />
+              ))
             )}
           </CardBody>
         </Card>
@@ -64,7 +94,7 @@ export default async function OrganizationPage() {
           <CardHeader
             title="직위"
             description={`총 ${positions.length}단계`}
-            action={<CreatePositionDialog nextLevel={nextLevel} />}
+            action={canManage ? <CreatePositionDialog nextLevel={nextLevel} /> : undefined}
           />
           {positions.length === 0 ? (
             <CardBody>
@@ -78,6 +108,7 @@ export default async function OrganizationPage() {
                   <Th>코드</Th>
                   <Th>직위명</Th>
                   <Th>사용</Th>
+                  <Th />
                 </tr>
               </Thead>
               <tbody>
@@ -87,7 +118,20 @@ export default async function OrganizationPage() {
                     <Td className="text-caption text-body tabular-nums">{position.code}</Td>
                     <Td className="font-medium">{position.name}</Td>
                     <Td>
-                      <ActiveBadge active={position.active} />
+                      {canManage ? (
+                        <PositionActiveToggle
+                          positionId={position.id}
+                          name={position.name}
+                          active={position.active}
+                        />
+                      ) : (
+                        <Badge tone={position.active ? "normal" : "inactive"}>
+                          {position.active ? "사용" : "미사용"}
+                        </Badge>
+                      )}
+                    </Td>
+                    <Td className="text-right">
+                      {canManage ? <EditPositionDialog position={position} /> : null}
                     </Td>
                   </Tr>
                 ))}

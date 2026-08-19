@@ -2,22 +2,17 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { CircleAlert, Plus } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/shadcn/dialog";
+import { CircleAlert, Pencil, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Field, Input, Select } from "@/components/ui/field";
+import { Modal } from "@/components/ui/modal";
+import { Field, Input } from "@/components/ui/field";
+import { SelectMenu } from "@/components/ui/select-menu";
 import { Spinner } from "@/components/ui/spinner";
+import type { JobPositionRes } from "@/lib/api/types";
 import {
   createDepartmentAction,
   createPositionAction,
+  updatePositionAction,
   type OrgFormState,
 } from "./actions";
 
@@ -74,36 +69,38 @@ export function CreateDepartmentDialog({ departments }: { departments: Departmen
   useCloseOnSuccess(state, () => setOpen(false), formRef);
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm" variant="secondary" className="gap-xxs">
-          <Plus className="size-3.5" />
-          부서 추가
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>부서 추가</DialogTitle>
-          <DialogDescription>상위 부서를 지정하면 계층 아래에 등록됩니다</DialogDescription>
-        </DialogHeader>
-
+    <>
+      <Button size="sm" variant="secondary" className="gap-xxs" onClick={() => setOpen(true)}>
+        <Plus className="size-3.5" />
+        부서 추가
+      </Button>
+      <Modal
+        open={open}
+        onOpenChange={setOpen}
+        title="부서 추가"
+        description="상위 부서를 지정하면 계층 아래에 등록됩니다"
+      >
         <form ref={formRef} action={formAction} className="flex flex-col gap-md">
-          <Field label="부서코드" htmlFor="dept-code" error={state.fieldErrors?.code}>
+          <Field label="부서코드" htmlFor="dept-code" error={state.fieldErrors?.code} required>
             <Input id="dept-code" name="code" placeholder="D130" required />
           </Field>
-          <Field label="부서명" htmlFor="dept-name" error={state.fieldErrors?.name}>
+          <Field label="부서명" htmlFor="dept-name" error={state.fieldErrors?.name} required>
             <Input id="dept-name" name="name" placeholder="총무팀" required />
           </Field>
           <Field label="상위 부서" htmlFor="dept-parent">
-            <Select id="dept-parent" name="parentId" defaultValue="">
-              <option value="">없음 (최상위)</option>
-              {departments.map((dept) => (
-                <option key={dept.id} value={dept.id}>
-                  {" ".repeat(dept.depth * 2)}
-                  {dept.name}
-                </option>
-              ))}
-            </Select>
+            <SelectMenu
+              name="parentId"
+              ariaLabel="상위 부서"
+              placeholder="없음 (최상위)"
+              options={[
+                { value: "", label: "없음 (최상위)" },
+                ...departments.map((dept) => ({
+                  value: String(dept.id),
+                  label: dept.name,
+                  depth: dept.depth,
+                })),
+              ]}
+            />
           </Field>
           <Field label="정렬 순서" htmlFor="dept-sort" error={state.fieldErrors?.sortOrder}>
             <Input id="dept-sort" name="sortOrder" type="number" placeholder="10" />
@@ -111,15 +108,15 @@ export function CreateDepartmentDialog({ departments }: { departments: Departmen
 
           <FormError message={state.ok ? undefined : state.message} />
 
-          <DialogFooter>
+          <div className="flex justify-end gap-xs">
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
-              취소
+            취소
             </Button>
             <SubmitButton label="등록" />
-          </DialogFooter>
+          </div>
         </form>
-      </DialogContent>
-    </Dialog>
+      </Modal>
+    </>
   );
 }
 
@@ -130,27 +127,25 @@ export function CreatePositionDialog({ nextLevel }: { nextLevel: number }) {
   useCloseOnSuccess(state, () => setOpen(false), formRef);
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm" variant="secondary" className="gap-xxs">
-          <Plus className="size-3.5" />
-          직위 추가
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>직위 추가</DialogTitle>
-          <DialogDescription>서열이 클수록 상위 직위입니다</DialogDescription>
-        </DialogHeader>
-
+    <>
+      <Button size="sm" variant="secondary" className="gap-xxs" onClick={() => setOpen(true)}>
+        <Plus className="size-3.5" />
+        직위 추가
+      </Button>
+      <Modal
+        open={open}
+        onOpenChange={setOpen}
+        title="직위 추가"
+        description="서열이 클수록 상위 직위입니다"
+      >
         <form ref={formRef} action={formAction} className="flex flex-col gap-md">
-          <Field label="직위코드" htmlFor="pos-code" error={state.fieldErrors?.code}>
+          <Field label="직위코드" htmlFor="pos-code" error={state.fieldErrors?.code} required>
             <Input id="pos-code" name="code" placeholder="P70" required />
           </Field>
-          <Field label="직위명" htmlFor="pos-name" error={state.fieldErrors?.name}>
+          <Field label="직위명" htmlFor="pos-name" error={state.fieldErrors?.name} required>
             <Input id="pos-name" name="name" placeholder="상무" required />
           </Field>
-          <Field label="서열" htmlFor="pos-level" error={state.fieldErrors?.levelNo}>
+          <Field label="서열" htmlFor="pos-level" error={state.fieldErrors?.levelNo} required>
             <Input
               id="pos-level"
               name="levelNo"
@@ -163,14 +158,90 @@ export function CreatePositionDialog({ nextLevel }: { nextLevel: number }) {
 
           <FormError message={state.ok ? undefined : state.message} />
 
-          <DialogFooter>
+          <div className="flex justify-end gap-xs">
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
-              취소
+            취소
             </Button>
             <SubmitButton label="등록" />
-          </DialogFooter>
+          </div>
         </form>
-      </DialogContent>
-    </Dialog>
+      </Modal>
+    </>
+  );
+}
+
+// MARK: 직위 수정
+export function EditPositionDialog({ position }: { position: JobPositionRes }) {
+  const [open, setOpen] = useState(false);
+  const [state, formAction] = useActionState<OrgFormState, FormData>(
+    updatePositionAction.bind(null, position.id),
+    {},
+  );
+  const formRef = useRef<HTMLFormElement>(null);
+  useCloseOnSuccess(state, () => setOpen(false), formRef);
+
+  return (
+    <>
+      <Button
+        size="sm"
+        variant="ghost"
+        className="gap-xxs"
+        aria-label={`${position.name} 수정`}
+        onClick={() => setOpen(true)}
+      >
+        <Pencil className="size-3.5" />
+        수정
+      </Button>
+      <Modal
+        open={open}
+        onOpenChange={setOpen}
+        title="직위 수정"
+        description={`직위코드 ${position.code} 는 변경할 수 없습니다`}
+      >
+        <form ref={formRef} action={formAction} className="flex flex-col gap-md">
+          <Field label="직위명" htmlFor={`pos-name-${position.id}`} error={state.fieldErrors?.name} required>
+            <Input
+              id={`pos-name-${position.id}`}
+              name="name"
+              defaultValue={position.name}
+              required
+            />
+          </Field>
+          <Field
+            label="서열"
+            htmlFor={`pos-level-${position.id}`}
+            error={state.fieldErrors?.levelNo}
+            required
+          >
+            <Input
+              id={`pos-level-${position.id}`}
+              name="levelNo"
+              type="number"
+              min={1}
+              defaultValue={position.levelNo}
+              required
+            />
+          </Field>
+          <label className="flex items-center gap-xs text-body-sm">
+            <input
+              type="checkbox"
+              name="active"
+              defaultChecked={position.active}
+              className="size-4 rounded-xs accent-primary"
+            />
+            사용
+          </label>
+
+          <FormError message={state.ok ? undefined : state.message} />
+
+          <div className="flex justify-end gap-xs">
+            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+            취소
+            </Button>
+            <SubmitButton label="저장" />
+          </div>
+        </form>
+      </Modal>
+    </>
   );
 }
