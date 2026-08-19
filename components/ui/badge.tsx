@@ -25,26 +25,26 @@ import type {
 } from "@/lib/api/types";
 
 // MARK: - 상태 배지
-// 칩은 뉴트럴 고정, 의미는 아이콘 색으로만 전달
+// 배경·문자·아이콘이 같은 시맨틱 톤을 공유해 아이콘만 튀지 않게 함
 
 export type Tone = "normal" | "attention" | "critical" | "inactive";
 
 export const ICON_TONE: Record<Tone, string> = {
   normal: "text-ink",
-  attention: "text-warning-deep",
-  critical: "text-error",
+  attention: "text-body",
+  critical: "text-ink",
   inactive: "text-mute",
 };
 
-const TEXT_TONE: Record<Tone, string> = {
-  normal: "text-ink",
-  attention: "text-ink",
-  critical: "text-error-deep",
-  inactive: "text-mute",
+const TONE_STYLE: Record<Tone, string> = {
+  normal: "bg-canvas-soft-2 text-ink ring-hairline",
+  attention: "bg-canvas text-body ring-hairline-strong/30",
+  critical: "bg-canvas-soft-2 font-semibold text-ink ring-hairline-strong/45",
+  inactive: "bg-canvas text-mute ring-hairline",
 };
 
 export function statusTone(tone: Tone): string {
-  return TEXT_TONE[tone];
+  return ICON_TONE[tone];
 }
 
 interface BadgeProps {
@@ -58,14 +58,14 @@ export function Badge({ children, tone = "inactive", icon: Icon, className }: Ba
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-[5px] rounded-full bg-canvas py-[3px] pl-[7px] pr-[10px]",
-        "text-caption font-medium whitespace-nowrap ring-1 ring-inset ring-hairline",
-        TEXT_TONE[tone],
+        "inline-flex items-center gap-[5px] rounded-full py-[3px] pl-[7px] pr-[10px]",
+        "text-caption font-medium whitespace-nowrap ring-1 ring-inset",
+        TONE_STYLE[tone],
         className,
       )}
     >
       {Icon ? (
-        <Icon className={cn("size-3 shrink-0", ICON_TONE[tone])} strokeWidth={2.25} aria-hidden />
+        <Icon className="size-3 shrink-0 opacity-80" strokeWidth={2.25} aria-hidden />
       ) : null}
       {children}
     </span>
