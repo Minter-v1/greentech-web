@@ -5,7 +5,7 @@ import { createPublicUrl } from "@/lib/http/public-url";
 // MARK: - 라우트 가드
 // 쿠키 존재 여부만 확인. 토큰 유효성은 WAS가 판정하고 401은 apiFetch가 /logout으로 넘김
 
-const PUBLIC_PATHS = ["/login", "/logout"];
+const PUBLIC_PATHS = ["/login", "/logout", "/health"];
 
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
